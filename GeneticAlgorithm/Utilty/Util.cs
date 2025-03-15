@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GeneticAlgorithm.Util
+namespace GeneticAlgorithm
 {
     public class Util
     {
@@ -21,7 +21,6 @@ namespace GeneticAlgorithm.Util
             }
             return joinedArray;
         }
-
         public (bool[] arr1, bool[] arr2) seperateArrays(bool[] arr, int arr1Length, int arr2Length)
         {
             bool[] arr1 = new bool[arr1Length];

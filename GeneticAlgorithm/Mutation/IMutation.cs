@@ -9,6 +9,6 @@ namespace GeneticAlgorithm.Mutation
     
     public interface IMutation
     {
-
+        Individual mutate(Individual individual, double mutationRate);
     }
 }

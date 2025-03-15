@@ -1,5 +1,4 @@
 ﻿using System;
-using GeneticAlgorithm.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GeneticAlgorithm.Tests
@@ -10,7 +9,7 @@ namespace GeneticAlgorithm.Tests
         [TestMethod]
         public void TestJoinArrays()
         {
-            Util.Util util = new Util.Util();
+            Util util = new Util();
 
             // Arrange
             bool[] arr1 = { true, false, true };
@@ -29,7 +28,7 @@ namespace GeneticAlgorithm.Tests
         public void TestSeperateArrays()
         {
             // Arrange
-            Util.Util util = new Util.Util();
+            Util util = new Util();
             bool[] arr = { true, false, true, false, true };
             int arr1Length = 3;
             int arr2Length = 2;

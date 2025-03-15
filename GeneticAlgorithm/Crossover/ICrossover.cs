@@ -8,6 +8,6 @@ namespace GeneticAlgorithm.Crossover
 {
     public interface ICrossover
     {
-
+        Individual crossover(Individual parent1, Individual parent2, double crossoverRate);
     }
 }

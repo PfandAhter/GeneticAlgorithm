@@ -3,7 +3,6 @@ using GeneticAlgorithm.Mutation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -18,47 +17,47 @@ namespace GeneticAlgorithm
         public double crossoverRate { get; private set; }
         public double mutationRate { get; private set; }
         public double eliteRate { get; private set; }
-        public bool isRealEncoding { get; private set; }
         public int generationCount { get; private set; }
 
         private ICrossover crossover;
 
         private IMutation mutation;
+        public bool isRouletteWheelSelection { get; private set; }
+
         public bool isTournamentSelection { get; private set; }
 
-        public delegate void OnGenerationCompleteHandler(int generation, double bestFitness);
+        public delegate void OnGenerationCompleteHandler(int generation, Individual individual);
 
         public event OnGenerationCompleteHandler onGenerationComplete;
 
 
-        public GAEngine(int populationSize, double crossoverRate, double mutationRate, double eliteRate,int generationCount, bool isRealEncoding, bool isTournamentSelection,IMutation mutation, ICrossover crossover)
+        public GAEngine(int populationSize, double crossoverRate, double mutationRate, double eliteRate,int generationCount, bool isRouletteWheelSelection, bool isTournamentSelection,IMutation mutation, ICrossover crossover)
         {
             this.populationSize = populationSize;
             this.crossoverRate = crossoverRate;
             this.mutationRate = mutationRate;
             this.eliteRate = eliteRate;
             this.generationCount = generationCount;
-            this.isRealEncoding = isRealEncoding;
+            this.isRouletteWheelSelection = isRouletteWheelSelection;
             this.isTournamentSelection = isTournamentSelection;
 
             this.crossover = crossover;
             this.mutation = mutation;
-
-            isTournamentSelection = true;
-            isRealEncoding = false;
 
             InitializePopulation();
         }
 
         public Individual run()
         {
-            for(int generation = 0; generation < generationCount; generation++)
+            for(int generation = 1; generation <= generationCount; generation++)
             {
                 generateNextGeneration();
 
                 Individual bestIndividual = getFittest(population);
 
-                onGenerationComplete?.Invoke(generation, bestIndividual.fitnessValue);
+                onGenerationComplete?.Invoke(generation, bestIndividual);
+
+                Task.Delay(25).Wait();
             }
 
             return getFittest(population);
@@ -85,15 +84,6 @@ namespace GeneticAlgorithm
 
             List<Individual> tournament = new List<Individual>(tournamentSize);
 
-            /*for (int i = 0; i < tournamentSize; i++)
-            {
-                int randomIndex = random.Next(populationSize);
-                /*if (!tournament.Contains(population[randomIndex])) // Ayni bireyi birden fazla kez eklemiyoruz
-                {
-                
-                tournament.Add(population[randomIndex]);
-            }*/
-
             while(tournament.Count < tournamentSize)
             {
                 int randomIndex = random.Next(population.Count);
@@ -103,19 +93,51 @@ namespace GeneticAlgorithm
                 }
             }
 
-            //tournament.Sort();
-
             return getFittest(tournament);
+        }
+
+        private Individual rouletteWheelSelection()
+        {
+            double totalFitness = population.Sum(ind => ind.fitnessValue);
+
+            if (totalFitness == 0)
+            {
+                return population[random.Next(population.Count)];
+            }
+
+            List<double> relativeFitness = population.Select(ind => ind.fitnessValue / totalFitness).ToList();
+
+            List<double> cumulativeProbability = new List<double>();
+            double cumulativeSum = 0.0;
+
+            foreach (double rf in relativeFitness)
+            {
+                cumulativeSum += rf;
+                cumulativeProbability.Add(cumulativeSum);
+            }
+
+            double rand = random.NextDouble();
+
+            // Rastgele noktanın hangi bireye ait olduğunu bul
+            for (int i = 0; i < cumulativeProbability.Count; i++)
+            {
+                if (rand <= cumulativeProbability[i])
+                {
+                    return population[i];
+                }
+            }
+
+            return getFittest(population);
         }
 
         public Individual getFittest(List<Individual> individuals)
         {
-            return individuals.OrderByDescending(x => x.fitnessValue).FirstOrDefault();
+            return individuals.OrderBy(x => x.fitnessValue).FirstOrDefault();
         }
 
         public List<Individual> sortByFitnessValue(List<Individual> individuals)
         {
-            return individuals.OrderByDescending(x => x.fitnessValue).ToList();
+            return individuals.OrderBy(x => x.fitnessValue).ToList();
         }
 
         public void generateNextGeneration()
@@ -132,8 +154,8 @@ namespace GeneticAlgorithm
                 }
                 while (nextGeneration.Count < populationSize - 1)
                 {
-                    Individual parent1 = isTournamentSelection ? tournamentSelection() : population[random.Next(population.Count)];
-                    Individual parent2 = isTournamentSelection ? tournamentSelection() : population[random.Next(population.Count)];
+                    Individual parent1 = isTournamentSelection ? tournamentSelection() : rouletteWheelSelection();
+                    Individual parent2 = isTournamentSelection ? tournamentSelection() : rouletteWheelSelection();
                     Individual child = crossover.crossover(parent1, parent2, crossoverRate);
 
                     if (child == null)

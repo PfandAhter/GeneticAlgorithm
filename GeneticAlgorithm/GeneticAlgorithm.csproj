@@ -124,7 +124,9 @@
       <DependentUpon>GraphicForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Mutation\RandomMutation.cs" />
-    <Compile Include="Tests\BinaryEncoderTest.cs" />
+    <Compile Include="Tests\Crossover\BasicCrossoverTest.cs" />
+    <Compile Include="Tests\Utility\BinaryEncoderTest.cs" />
+    <Compile Include="Tests\Validator\InputValidatorTest.cs" />
     <Compile Include="Utilty\BinaryEncoder.cs" />
     <Compile Include="Crossover\ICrossover.cs" />
     <Compile Include="Utilty\Fitness.cs" />
@@ -139,7 +141,7 @@
     <Compile Include="Mutation\IMutation.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Tests\UtilTest.cs" />
+    <Compile Include="Tests\Utility\UtilTest.cs" />
     <Compile Include="Utilty\Util.cs" />
     <Compile Include="Validator\InputValidator.cs" />
     <EmbeddedResource Include="Forms\GraphicForm.resx">

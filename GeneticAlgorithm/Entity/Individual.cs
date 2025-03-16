@@ -11,6 +11,8 @@ namespace GeneticAlgorithm
         public bool [] genes { get; set;}
         public bool[] x1Gens { get; set; }
         public bool[] x2Gens { get; set; }
+
+        public double decimalValue { get; set; }
         public double fitnessValue { get; set; }
 
         private static Random random = new Random();
@@ -50,9 +52,10 @@ namespace GeneticAlgorithm
 
             x1Gens = new bool[x1Length];
             x2Gens = new bool[x2Length];
-
             x1Gens = util.seperateArrays(genes, x1Length, x2Length).arr1;
             x2Gens = util.seperateArrays(genes, x1Length, x2Length).arr2;
+
+            decimalValue = fitness.getDecimalValue(x1Gens, x2Gens);
         }
 
         public int CompareTo(Individual other)

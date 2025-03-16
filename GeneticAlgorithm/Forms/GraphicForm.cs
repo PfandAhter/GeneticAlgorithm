@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
@@ -21,16 +21,16 @@ namespace GeneticAlgorithm.Forms
 
         private GAEngine genericAlgorithmEngine;
 
-        private int generationCount;
+
         private String thema = "#082c30";
 
-        public GraphicForm(GAEngine _gaEngine, int generationCount)
+        public GraphicForm(GAEngine _gaEngine)
         {
             InitializeComponent();
             genericAlgorithmEngine = _gaEngine;
-            this.generationCount = generationCount;
             bestFitnessHistory = new List<double>();
             this.BackColor = ColorTranslator.FromHtml(thema);
+            dataGridView_GenerationValues.Rows.Clear();
             setupChart();
         }
 
@@ -41,22 +41,31 @@ namespace GeneticAlgorithm.Forms
                 chart_generation.Series["BestFitness"].Points.Clear();
                 bestFitnessHistory.Clear();
 
-                genericAlgorithmEngine.onGenerationComplete += (generation, bestFitness) =>
+                genericAlgorithmEngine.onGenerationComplete += (generation, bestIndividual) =>
                 {
-                    bestFitnessHistory.Add(bestFitness);
-
-                    if (generation % 10 == 0 || generation == generationCount - 1)
+                    bestFitnessHistory.Add(bestIndividual.fitnessValue);
+                    fillDataGridView(generation, bestIndividual);
+                    
+                    this.Invoke((MethodInvoker)delegate
                     {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            updateChart();
-
-                        });
-                    }
+                        updateChart();
+                    });
                 };
 
-                Individual bestIndividual = genericAlgorithmEngine.run();
-                //printResults(bestIndividual);
+                Task.Run(() =>
+                {
+                    Individual bestIndividual = genericAlgorithmEngine.run();
+
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        // Algoritma tamamlandığında yapılacaklar
+                        label_X1Length.Text = bestIndividual.x1Gens.Length.ToString();
+                        label_X2Length.Text = bestIndividual.x2Gens.Length.ToString();
+                        label_FitnessValue.Text = bestIndividual.fitnessValue.ToString();
+                        label_DecimalNumber.Text = bestIndividual.decimalValue.ToString();
+                        label_Genom.Text = string.Join("", bestIndividual.genes.Select(gene => gene ? "1" : "0"));
+                    });
+                });
             }
             catch (IncorretInputException ex)
             {
@@ -75,12 +84,17 @@ namespace GeneticAlgorithm.Forms
             chart_generation.Series.Clear();
 
             // Grafik başlığı ekle
-            chart_generation.Titles.Add(new Title("Genetik Algoritma Yakınsama Grafiği"));
+            Title title = new Title("Genetik Algoritma Yakınsama Grafiği");
+            title.Font = new Font("Arial", 20, FontStyle.Bold);
+            chart_generation.Titles.Add(title);
 
             // Grafik alanı ayarları
             ChartArea chartArea = new ChartArea("ConvergenceArea");
             chartArea.AxisX.Title = "Jenerasyon";
-            chartArea.AxisY.Title = "En İyi Uygunluk Değeri";
+            chartArea.AxisY.Title = "Fitness degeri";
+            chartArea.AxisX.TitleFont = new Font("Arial", 20, FontStyle.Bold);
+            chartArea.AxisY.TitleFont = new Font("Arial", 20, FontStyle.Bold);
+
             chartArea.AxisX.MajorGrid.LineColor = Color.LightGray;
             chartArea.AxisY.MajorGrid.LineColor = Color.LightGray;
             chartArea.AxisX.Minimum = 0;
@@ -95,54 +109,52 @@ namespace GeneticAlgorithm.Forms
             series.MarkerStyle = MarkerStyle.Circle;
             series.MarkerSize = 6;
             chart_generation.Series.Add(series);
-
-            // İsterseniz ortalama fitness için ikinci bir seri ekleyebilirsiniz
-            // Series avgSeries = new Series("AverageFitness");
-            // avgSeries.ChartType = SeriesChartType.Line;
-            // avgSeries.Color = Color.Green;
-            // avgSeries.BorderWidth = 2;
-            // chart_generation.Series.Add(avgSeries);
         }
         private void updateChart()
         {
             try
             {
                 Series series = chart_generation.Series["BestFitness"];
-                series.Points.Clear();
 
-                // Verileri grafiğe ekle
-                for (int i = 0; i < bestFitnessHistory.Count; i++)
-                {
-                    series.Points.AddXY(i, bestFitnessHistory[i]);
-                }
-
+                // Tüm verileri temizlemek yerine sadece son jenerasyonun verisini ekleyin
                 if (bestFitnessHistory.Count > 0)
                 {
-                    double minFitness = bestFitnessHistory.Min();
-                    double maxFitness = bestFitnessHistory.Max();
+                    int lastIndex = bestFitnessHistory.Count-1;
 
-                    // Minimum değerden biraz daha düşük, maksimum değerden biraz daha yüksek bir aralık belirle
-                    double range = maxFitness - minFitness;
-                    double yMin = Math.Max(0, minFitness - (range * 0.05)); // En az 0 olsun
-                    double yMax = maxFitness + (range * 0.05);
+                    if(bestFitnessHistory.Count == 100)
+                    {
+                        MessageBox.Show("100 oldu count");
+                    }
 
-                    // Y ekseni aralığını ayarla
-                    chart_generation.ChartAreas[0].AxisY.Minimum = yMin;
-                    chart_generation.ChartAreas[0].AxisY.Maximum = yMax;
-
-                    // Y ekseni için otomatik aralıklandırma
-                    chart_generation.ChartAreas[0].AxisY.Interval = range / 10;
+                    if(lastIndex == 99)
+                    {
+                        MessageBox.Show("99 oldu count");
+                    }
+                    series.Points.AddXY(lastIndex, bestFitnessHistory[lastIndex]);
                 }
-
-                // Grafik eksenlerini yeniden hesapla
-                //chart_generation.ChartAreas[0].RecalculateAxesScale();
 
                 // Grafiği yenile
                 chart_generation.Invalidate();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Grafik güncellenirken hata: {ex.Message}", "Grafik Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Grafik güncellenirken hata: {ex.Message}");
+            }
+        }
+
+        private void fillDataGridView(int generation, Individual bestIndividual)
+        {
+            if (dataGridView_GenerationValues.InvokeRequired)
+            {
+                dataGridView_GenerationValues.Invoke(new Action(() => fillDataGridView(generation, bestIndividual)));
+            }
+            else
+            {
+                dataGridView_GenerationValues.Rows.Add(
+                    generation.ToString(),
+                    bestIndividual.decimalValue.ToString(),
+                    bestIndividual.fitnessValue.ToString()
+                );
             }
         }
 
